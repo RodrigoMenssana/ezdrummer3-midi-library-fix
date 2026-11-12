@@ -41,7 +41,7 @@ C:\Program Files (x86)\Common Files\Toontrack\EZDrummer\MIDI
 Entretanto, os arquivos MIDI estavam presentes sob o caminho personalizado configurado no programa:
 
 ```text
-C:\Users\SoaresRo\Documents\Library\EZDrummer\Midi
+C:\Users\<USUARIO>\Documents\Library\EZDrummer\Midi
 ```
 
 Depois da exclusão **somente do valor `MidiPath`**, o EZdrummer 3 passou a reconhecer e reproduzir os grooves em modo standalone e como plugin VST3 no Cubase 15. A sequência de testes sustenta fortemente que a entrada legada provocava o problema **nesta instalação**.
@@ -57,7 +57,7 @@ Depois da exclusão **somente do valor `MidiPath`**, o EZdrummer 3 passou a reco
 3. Registre o diretório indicado em **Sound and MIDI Libraries**.
 4. Não altere o caminho ainda.
 
-**No caso documentado:** `C:\Users\SoaresRo\Documents\Library\EZDrummer`.
+**No caso documentado:** `C:\Users\<USUARIO>\Documents\Library\EZDrummer`.
 
 O caminho padrão frequentemente usado no Windows é:
 
