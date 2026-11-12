@@ -8,6 +8,18 @@
 
 > **Atenção:** este guia inclui uma alteração pontual no Registro do Windows. Execute-a somente quando o diagnóstico indicar a existência do valor `MidiPath` no caminho documentado. Antes da exclusão, faça backup e confirme que ele foi criado. O procedimento não é uma solução universal para todo erro de biblioteca MIDI.
 
+## Índice
+
+- [1. Sintoma](#1-sintoma)
+- [2. Diagnóstico da causa neste caso](#2-causa-constatada-neste-caso)
+- [3. Diagnóstico antes de qualquer alteração](#3-diagnóstico-antes-de-alterar-qualquer-configuração)
+- [4. Backup do Registro](#4-backup-obrigatório-do-registro)
+- [5. Correção aplicada](#5-correção-aplicada--remover-somente-o-valor-legado-midipath)
+- [6. Validação](#6-validação-após-a-correção)
+- [7. Resultados](#7-resultado-e-critérios-de-encerramento)
+- [8. Cuidados e alternativas](#8-cuidados-e-alternativas-para-outros-usuários)
+- [9. Referências oficiais](#9-referências-oficiais)
+
 ## 1. Sintoma
 
 Na aba **Grooves**, o EZdrummer 3 exibia **“No MIDI library found”**. As bibliotecas de sons e as pastas dos grooves MIDI existiam no disco, mas o programa não apresentava os grooves no navegador. Na aba **Settings > Advanced**, a opção **Restore MIDI Database** estava desabilitada.
@@ -34,7 +46,7 @@ C:\Users\SoaresRo\Documents\Library\EZDrummer\Midi
 
 Depois da exclusão **somente do valor `MidiPath`**, o EZdrummer 3 passou a reconhecer e reproduzir os grooves em modo standalone e como plugin VST3 no Cubase 15. A sequência de testes sustenta fortemente que a entrada legada provocava o problema **nesta instalação**.
 
-> Os caminhos do perfil `SoaresRo` são exemplos deste atendimento. Em outro computador, descubra o caminho real nas configurações do EZdrummer 3; não copie cegamente esses diretórios.
+> Os caminhos exibidos foram anonimizados com `<USUARIO>`. São exemplos do atendimento, não caminhos universais. Consulte o diretório efetivamente configurado em **Settings > Libraries/Paths**.
 
 ## 3. Diagnóstico antes de alterar qualquer configuração
 
@@ -105,13 +117,14 @@ reg.exe export "HKLM\SOFTWARE\WOW6432Node\Toontrack\Superior\EZdrummer" "$backup
 
 **Resultado esperado:** `A operação foi concluída com êxito.`
 
-Confirme que o arquivo existe:
+Confirme que o backup existe e não está vazio:
 
 ```powershell
-Test-Path $backup
+Test-Path -LiteralPath $backup -PathType Leaf
+(Get-Item -LiteralPath $backup).Length
 ```
 
-O resultado deve ser `True`. Guarde o arquivo em um local seguro e persistente, preferencialmente também fora do computador. Por ser um backup de Registro, ele pode conter configurações da instalação e deve ser tratado como arquivo administrativo.
+O primeiro resultado deve ser `True` e o segundo deve ser maior que zero. Se a exportação falhar ou o arquivo não puder ser verificado, **não avance para a exclusão**. Guarde o arquivo em um local seguro e persistente, preferencialmente também fora do computador. Por ser um backup de Registro, ele pode conter configurações da instalação e deve ser tratado como arquivo administrativo.
 
 **Comando que efetivamente funcionou neste atendimento:**
 
@@ -119,7 +132,17 @@ O resultado deve ser `True`. Guarde o arquivo em um local seguro e persistente, 
 reg.exe export "HKLM\SOFTWARE\WOW6432Node\Toontrack\Superior\EZdrummer" "$env:TEMP\EZdrummer_Registro_Backup.reg" /y
 ```
 
-Neste caso o Windows confirmou o sucesso. Como `%TEMP%` é uma pasta temporária, **copie o backup para um destino permanente** antes de realizar novas intervenções.
+Neste atendimento, o Windows confirmou o sucesso da exportação para a pasta temporária. **Não há registro de que o arquivo tenha sido posteriormente copiado para um local permanente.** Para repetir o procedimento com segurança, copie-o para um destino persistente e confira a cópia antes de prosseguir. Por exemplo:
+
+```powershell
+$origem = Join-Path $env:TEMP 'EZdrummer_Registro_Backup.reg'
+$destino = Join-Path $env:USERPROFILE 'EZdrummer_Registro_Backup.reg'
+Copy-Item -LiteralPath $origem -Destination $destino -ErrorAction Stop
+Test-Path -LiteralPath $destino -PathType Leaf
+(Get-Item -LiteralPath $destino).Length
+```
+
+Se qualquer etapa falhar, interrompa a correção até obter um backup válido.
 
 ### 4.2. Erro comum no PowerShell
 
@@ -140,7 +163,7 @@ A falha ao gravar o `.reg` nessas tentativas não demonstrava corrupção do Reg
 
 - Bibliotecas e arquivos MIDI encontrados no disco.
 - Valor `MidiPath` presente na chave especificada.
-- Backup da chave exportado e verificado.
+- Backup da chave exportado, com existência e tamanho verificados; cópia em local persistente recomendada.
 - EZdrummer 3 e Cubase fechados.
 
 Abra o **PowerShell como administrador** e execute:
@@ -184,7 +207,7 @@ O comando remove **apenas o valor `MidiPath`**, não a chave inteira, e não exc
 | Arquivos/pastas MIDI presentes | Confirmado |
 | `Restore MIDI Database` disponível antes da correção | Não; botão desabilitado |
 | `MidiPath` legado encontrado | Sim |
-| Backup da chave do Registro | Criado com sucesso |
+| Backup da chave do Registro | Exportação confirmada pelo Windows; verificação posterior de integridade e cópia permanente não registradas |
 | Exclusão específica de `MidiPath` | Concluída com sucesso |
 | EZdrummer 3 standalone | Inicialização normal |
 | Navegador de grooves standalone | Bibliotecas reconhecidas |
@@ -192,7 +215,7 @@ O comando remove **apenas o valor `MidiPath`**, não a chave inteira, e não exc
 | Reprodução de groove MIDI | Funcionando |
 | Erro “No MIDI library found” | Resolvido |
 
-**Parecer:** ocorrência encerrada após validação funcional em ambos os ambientes. Não foram necessárias reinstalações, movimentações de bibliotecas ou outras alterações.
+**Parecer:** ocorrência encerrada após validação funcional em ambos os ambientes. A correção foi eficaz nesta instalação; não é garantida para outras causas do mesmo sintoma. Não foram necessárias reinstalações, movimentações de bibliotecas ou outras alterações.
 
 ## 8. Cuidados e alternativas para outros usuários
 
@@ -206,9 +229,10 @@ O comando remove **apenas o valor `MidiPath`**, não a chave inteira, e não exc
 
 ## 9. Referências oficiais
 
-1. Toontrack — [HELP: No MIDI Library Found](https://www.toontrack.com/forums/topic/help-no-midi-library-found/). Discussão com recomendações para conferir o caminho das bibliotecas, restaurar o banco de dados e remover `MidiPath` em casos apropriados.
-2. Toontrack — [PM doesn’t Install Ez Drummer MIDI file](https://www.toontrack.com/forums/topic/pm-doesnt-install-ez-drummer-midi-file/). Resposta da equipe da Toontrack com o comando específico de exclusão do valor `MidiPath`.
-3. Toontrack — [EZdrummer 3 Release Notes](https://www.toontrack.com/release-notes/ezdrummer-3/). Notas de versão com referências à função **Restore MIDI Database**.
+1. Toontrack — [Installation (tutorials & common issues)](https://www.toontrack.com/faq/installation-faq/). FAQ oficial que indica que entradas `MidiPath` não devem existir em instalações atuais e orienta o diagnóstico.
+2. Toontrack — [HELP: No MIDI Library Found](https://www.toontrack.com/forums/topic/help-no-midi-library-found/). Discussão com recomendações para conferir o caminho das bibliotecas, restaurar o banco de dados e remover `MidiPath` em casos apropriados.
+3. Toontrack — [PM doesn’t Install Ez Drummer MIDI file](https://www.toontrack.com/forums/topic/pm-doesnt-install-ez-drummer-midi-file/). Resposta da equipe da Toontrack com o comando específico de exclusão do valor `MidiPath`.
+4. Toontrack — [EZdrummer 3 Release Notes](https://www.toontrack.com/release-notes/ezdrummer-3/). Notas de versão com referências à função **Restore MIDI Database**.
 
 ---
 
